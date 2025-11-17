@@ -15,8 +15,13 @@ def cmd(c, desc):
 def install_gaming():
     print("\n🎮 Gaming Pillar")
     print("="*50)
-    for pkg in ['steam', 'gamemode', 'lib32-gcc-libs']:
+    # Existing packages
+    for pkg in ['steam', 'gamemode', 'lib32-gcc-libs', 'mangohud', 'lib32-mangohud']:
         cmd(f'pacman -S --noconfirm --needed {pkg}', f'Installing {pkg}')
+    # Run additional scripts if available
+    if os.path.exists('pillars/gaming/proton.sh'):
+        print("\n  Installing Proton-GE...")
+        subprocess.run(['bash', 'pillars/gaming/proton.sh'], check=False)
     print("  ✅ Gaming complete")
 
 def install_dev():
