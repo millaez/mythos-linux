@@ -1,0 +1,22 @@
+name: SteamOS
+category: gaming
+packages:
+  arch:
+    - steam
+    - gamemode
+    - mangohud
+    - lib32-gcc-libs
+
+optimizations:
+  sysctl:
+    - vm.swappiness: 10
+    - kernel.sched_migration_cost_ns: 5000000
+  
+  kernel_params:
+    - quiet
+    - splash
+    - threadirqs
+
+verification:
+  - command: steam --version
+  - command: gamemoded --version
