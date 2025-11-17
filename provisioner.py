@@ -72,3 +72,23 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def install_proton_ge():
+    """Install Proton-GE if script exists"""
+    script = 'pillars/gaming/proton-ge.sh'
+    if os.path.exists(script):
+        print("\n  → Installing Proton-GE...")
+        try:
+            subprocess.run(['bash', script], check=True)
+        except:
+            print("  ⚠️  Proton-GE installation failed (non-critical)")
+
+def install_proton_ge():
+    """Install Proton-GE if script exists"""
+    script = 'pillars/gaming/proton-ge.sh'
+    if os.path.exists(script):
+        print("\n  → Installing Proton-GE...")
+        try:
+            subprocess.run(['bash', script], check=True)
+        except:
+            print("  ⚠️  Proton-GE installation failed (non-critical)")
