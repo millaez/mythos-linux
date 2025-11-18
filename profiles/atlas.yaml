@@ -1,3 +1,47 @@
-name: ATLAS
-pillars: [gaming, developer, aesthetic]
-theme: greek
+# MythOS Profile: ATLAS
+# Personal development + gaming workstation with Hyprland aesthetic
+
+name: "ATLAS"
+description: "Full-featured MythOS setup for development, gaming, and aesthetics"
+
+# Inherit base behaviors from traits
+traits:
+  - steamos
+
+# Run bootstrap phase
+bootstrap: true
+
+# Pillars to provision
+pillars:
+  gaming:
+    - mangohud
+    - proton-ge
+  
+  developer:
+    - distrobox
+  
+  aesthetic:
+    - hyprland
+
+# Custom package lists (optional, for future expansion)
+packages:
+  pacman:
+    - firefox
+    - discord
+    - obs-studio
+  
+  aur:
+    - spotify
+    - visual-studio-code-bin
+
+# Theme preferences
+theme:
+  style: "catppuccin-mocha"
+  font: "JetBrains Mono"
+  terminal: "alacritty"
+
+# User-specific tweaks
+tweaks:
+  kernel: "cachyos"
+  compositor: "hyprland"
+  shell: "bash"
