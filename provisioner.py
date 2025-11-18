@@ -1,109 +1,202 @@
 #!/usr/bin/env python3
-"""MythOS - Minimal Working Provisioner"""
-import sys, os, subprocess, argparse
+"""
+MythOS Provisioner — Modular System Setup
+Orchestrates bootstrap, pillars, and profiles for reproducible Arch-based installs.
+"""
 
-def cmd(c, desc):
-    print(f"  → {desc}...", end='', flush=True)
-    try:
-        subprocess.run(c, shell=True, check=True, capture_output=True)
-        print(" ✅")
-        return True
-    except:
-        print(" ❌")
-        return False
+import argparse
+import subprocess
+import sys
+import yaml
+from pathlib import Path
+from typing import List, Dict
 
-def install_gaming():
-    print("\n🎮 Gaming Pillar")
-    print("="*50)
-    # Existing packages
-    for pkg in ['steam', 'gamemode', 'lib32-gcc-libs', 'mangohud', 'lib32-mangohud']:
-        cmd(f'pacman -S --noconfirm --needed {pkg}', f'Installing {pkg}')
-    # Run additional scripts if available
-    if os.path.exists('pillars/gaming/proton.sh'):
-        print("\n  Installing Proton-GE...")
-        subprocess.run(['bash', 'pillars/gaming/proton.sh'], check=False)
-    print("  ✅ Gaming complete")
 
-def install_dev():
-    print("\n💻 Developer Pillar")
-    print("="*50)
-    for pkg in ['git', 'python', 'docker', 'base-devel']:
-        cmd(f'pacman -S --noconfirm --needed {pkg}', f'Installing {pkg}')
-    cmd('systemctl enable docker', 'Enabling Docker')
-    print("  ✅ Developer complete")
+class MythOSProvisioner:
+    def __init__(self, repo_root: Path):
+        self.repo_root = repo_root
+        self.bootstrap_dir = repo_root / "bootstrap"
+        self.pillars_dir = repo_root / "pillars"
+        self.profiles_dir = repo_root / "profiles"
+        self.traits_dir = repo_root / "traits"
 
-def install_aesthetic():
-    print("\n✨ Aesthetic Pillar")
-    print("="*50)
-    for pkg in ['ttf-jetbrains-mono-nerd', 'noto-fonts']:
-        cmd(f'pacman -S --noconfirm --needed {pkg}', f'Installing {pkg}')
-    cmd('fc-cache -f', 'Updating fonts')
-    print("  ✅ Aesthetic complete")
+    def run_script(self, script_path: Path, description: str = None):
+        """Execute a shell script with error handling."""
+        if not script_path.exists():
+            print(f"❌ Script not found: {script_path}")
+            return False
+
+        desc = description or script_path.name
+        print(f"🔧 Running: {desc}")
+        
+        try:
+            result = subprocess.run(
+                ["bash", str(script_path)],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            print(f"✅ {desc} completed")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"❌ {desc} failed:")
+            print(e.stderr)
+            return False
+
+    def load_profile(self, profile_name: str) -> Dict:
+        """Load a YAML profile configuration."""
+        profile_path = self.profiles_dir / f"{profile_name}.yaml"
+        
+        if not profile_path.exists():
+            print(f"❌ Profile not found: {profile_name}")
+            sys.exit(1)
+        
+        with open(profile_path) as f:
+            return yaml.safe_load(f)
+
+    def load_trait(self, trait_name: str) -> Dict:
+        """Load a reusable trait set."""
+        trait_path = self.traits_dir / f"{trait_name}.yaml"
+        
+        if not trait_path.exists():
+            print(f"⚠️  Trait not found: {trait_name}")
+            return {}
+        
+        with open(trait_path) as f:
+            return yaml.safe_load(f)
+
+    def bootstrap(self):
+        """Run base Arch system setup."""
+        print("\n🜁 MythOS Bootstrap — Base System Setup")
+        print("=" * 50)
+        
+        arch_bootstrap = self.bootstrap_dir / "arch.sh"
+        return self.run_script(arch_bootstrap, "Arch base system setup")
+
+    def provision_pillar(self, pillar: str, scripts: List[str] = None):
+        """Provision a specific pillar (gaming, dev, aesthetic)."""
+        pillar_dir = self.pillars_dir / pillar
+        
+        if not pillar_dir.exists():
+            print(f"❌ Pillar not found: {pillar}")
+            return False
+
+        print(f"\n🔱 Provisioning Pillar: {pillar.upper()}")
+        print("=" * 50)
+
+        # If specific scripts provided, run those; otherwise run all
+        if scripts:
+            script_paths = [pillar_dir / f"{s}.sh" for s in scripts]
+        else:
+            script_paths = sorted(pillar_dir.glob("*.sh"))
+
+        success = True
+        for script in script_paths:
+            if not self.run_script(script):
+                success = False
+                if not self.confirm_continue():
+                    return False
+        
+        return success
+
+    def provision_from_profile(self, profile_name: str):
+        """Provision system based on a YAML profile."""
+        print(f"\n🜃 Loading Profile: {profile_name}")
+        profile = self.load_profile(profile_name)
+
+        # Load any traits referenced in profile
+        traits = profile.get("traits", [])
+        for trait in traits:
+            trait_data = self.load_trait(trait)
+            # Merge trait data into profile (traits are defaults)
+            for key, value in trait_data.items():
+                if key not in profile:
+                    profile[key] = value
+
+        # Run bootstrap if requested
+        if profile.get("bootstrap", True):
+            if not self.bootstrap():
+                if not self.confirm_continue():
+                    return False
+
+        # Provision each pillar
+        pillars = profile.get("pillars", {})
+        for pillar, scripts in pillars.items():
+            if not self.provision_pillar(pillar, scripts):
+                if not self.confirm_continue():
+                    return False
+
+        print("\n✅ Profile provisioning complete!")
+
+    def confirm_continue(self) -> bool:
+        """Ask user if they want to continue after an error."""
+        response = input("\n⚠️  Continue anyway? [y/N]: ").strip().lower()
+        return response == 'y'
+
 
 def main():
-    p = argparse.ArgumentParser(description='MythOS Provisioner')
-    p.add_argument('--gaming', action='store_true')
-    p.add_argument('--dev', action='store_true')
-    p.add_argument('--aesthetic', action='store_true')
-    p.add_argument('--all', action='store_true')
-    p.add_argument('--theme', choices=['greek','norse','egyptian'])
-    args = p.parse_args()
+    parser = argparse.ArgumentParser(
+        description="MythOS Provisioner — Modular Arch Linux Setup"
+    )
     
-    if os.geteuid() != 0:
-        print("❌ Run as root: sudo python3 provisioner.py --all")
-        sys.exit(1)
+    parser.add_argument(
+        "--profile",
+        help="Load a profile YAML (e.g., 'atlas')",
+        type=str
+    )
     
-    themes = {'greek':'🏛️ Greek', 'norse':'⚔️ Norse', 'egyptian':'𓀭 Egyptian'}
-    if args.theme:
-        print(f"\n{themes[args.theme]} Theme")
-    else:
-        print("\n🏛️ MythOS")
-    print("="*50)
+    parser.add_argument(
+        "--bootstrap",
+        action="store_true",
+        help="Run base Arch bootstrap only"
+    )
     
-    if args.all:
-        args.gaming = args.dev = args.aesthetic = True
+    parser.add_argument(
+        "--gaming",
+        action="store_true",
+        help="Provision gaming pillar"
+    )
     
-    if not (args.gaming or args.dev or args.aesthetic):
-        print("Specify: --gaming, --dev, --aesthetic, or --all")
-        sys.exit(1)
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="Provision developer pillar"
+    )
     
-    if args.gaming: install_gaming()
-    if args.dev: install_dev()
-    if args.aesthetic: install_aesthetic()
+    parser.add_argument(
+        "--aesthetic",
+        action="store_true",
+        help="Provision aesthetic pillar"
+    )
+
+    args = parser.parse_args()
+
+    # Determine repo root
+    repo_root = Path(__file__).parent.resolve()
+    provisioner = MythOSProvisioner(repo_root)
+
+    # Profile-based provisioning
+    if args.profile:
+        provisioner.provision_from_profile(args.profile)
+        return
+
+    # Manual flag-based provisioning
+    if args.bootstrap:
+        provisioner.bootstrap()
     
-    print(f"\n{'='*50}")
-    print("✅ MythOS Complete!")
-    print(f"{'='*50}\n")
+    if args.gaming:
+        provisioner.provision_pillar("gaming")
+    
+    if args.dev:
+        provisioner.provision_pillar("developer")
+    
+    if args.aesthetic:
+        provisioner.provision_pillar("aesthetic")
+
+    # If no flags, show help
+    if not any([args.profile, args.bootstrap, args.gaming, args.dev, args.aesthetic]):
+        parser.print_help()
+
 
 if __name__ == "__main__":
     main()
-
-def install_proton_ge():
-    """Install Proton-GE if script exists"""
-    script = 'pillars/gaming/proton-ge.sh'
-    if os.path.exists(script):
-        print("\n  → Installing Proton-GE...")
-        try:
-            subprocess.run(['bash', script], check=True)
-        except:
-            print("  ⚠️  Proton-GE installation failed (non-critical)")
-
-def install_proton_ge():
-    """Install Proton-GE if script exists"""
-    script = 'pillars/gaming/proton-ge.sh'
-    if os.path.exists(script):
-        print("\n  → Installing Proton-GE...")
-        try:
-            subprocess.run(['bash', script], check=True)
-        except:
-            print("  ⚠️  Proton-GE installation failed (non-critical)")
-
-def install_proton_ge():
-    """Install Proton-GE if script exists"""
-    script = 'pillars/gaming/proton-ge.sh'
-    if os.path.exists(script):
-        print("\n  → Installing Proton-GE...")
-        try:
-            subprocess.run(['bash', script], check=True)
-        except:
-            print("  ⚠️  Proton-GE installation failed (non-critical)")
