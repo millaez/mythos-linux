@@ -1,4 +1,4 @@
-# 🏛️ # 🜁 MythOS Linux
+# 🏛️ MythOS Linux
 
 > **A curated Arch-based distribution for gaming, development, and aesthetic perfection.**
 
