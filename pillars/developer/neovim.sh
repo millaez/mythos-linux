@@ -1,89 +1,119 @@
 #!/bin/bash
 set -e
 
-# MythOS Gaming Pillar — GameMode Advanced Setup
+# MythOS Developer Pillar — Neovim Setup
 
-echo "⚡ Configuring GameMode for maximum performance..."
+echo "📝 Setting up Neovim with LSP support..."
 
-# Install GameMode (if not already installed)
+# Install Neovim and dependencies
 sudo pacman -S --needed --noconfirm \
-    gamemode \
-    lib32-gamemode
+    neovim \
+    git \
+    nodejs \
+    npm \
+    python-pip \
+    ripgrep \
+    fd \
+    unzip
 
-# Advanced GameMode configuration
-sudo tee /etc/gamemode.ini > /dev/null << 'EOF'
-[general]
-; Renice game process for higher priority
-renice=10
+# Install LazyVim (modern Neovim distribution)
+echo "📦 Installing LazyVim..."
 
-; DesktopEntry to trigger when starting/ending game
-start_hook=/usr/bin/notify-send "GameMode started"
-end_hook=/usr/bin/notify-send "GameMode ended"
-
-[filter]
-; Whitelist/blacklist for processes
-whitelist=
-blacklist=
-
-[gpu]
-; Apply GPU optimizations (NVIDIA/AMD)
-apply_gpu_optimisations=accept-responsibility
-gpu_device=0
-
-; AMD specific
-amd_performance_level=high
-
-[cpu]
-; CPU governor (should be 'performance' for gaming)
-gov_on_start=performance
-gov_on_stop=powersave
-
-; CPU core parking/pinning
-park_cores=no
-pin_cores=no
-
-[custom]
-; Custom scripts
-start=/usr/local/bin/gamemode-start.sh
-end=/usr/local/bin/gamemode-end.sh
-EOF
-
-# Create custom start script
-sudo tee /usr/local/bin/gamemode-start.sh > /dev/null << 'EOF'
-#!/bin/bash
-# Disable compositor effects for performance
-if pgrep -x "Hyprland" > /dev/null; then
-    hyprctl keyword decoration:blur:enabled false
-    hyprctl keyword decoration:drop_shadow false
+# Backup existing Neovim config if it exists
+if [ -d ~/.config/nvim ]; then
+    mv ~/.config/nvim ~/.config/nvim.backup.$(date +%s)
+    echo "⚠️  Backed up existing Neovim config"
 fi
 
-# Set CPU governor to performance
-echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+# Clone LazyVim starter
+git clone https://github.com/LazyVim/starter ~/.config/nvim
+
+# Remove .git directory to make it your own
+rm -rf ~/.config/nvim/.git
+
+# Install common LSP servers
+echo "📦 Installing language servers..."
+
+# Install via npm
+npm install -g \
+    typescript-language-server \
+    vscode-langservers-extracted \
+    yaml-language-server \
+    bash-language-server
+
+# Install via pip
+pip install --user \
+    python-lsp-server \
+    pylint \
+    black \
+    isort
+
+# Install via pacman
+sudo pacman -S --needed --noconfirm \
+    rust-analyzer \
+    gopls
+
+# Create custom Neovim config for MythOS
+mkdir -p ~/.config/nvim/lua/config
+
+cat > ~/.config/nvim/lua/config/options.lua << 'EOF'
+-- MythOS Neovim Options
+
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+-- Line numbers
+vim.opt.number = true
+vim.opt.relativenumber = true
+
+-- Tabs and indentation
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+vim.opt.autoindent = true
+
+-- Search settings
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
+vim.opt.hlsearch = false
+
+-- Appearance
+vim.opt.termguicolors = true
+vim.opt.background = "dark"
+vim.opt.signcolumn = "yes"
+vim.opt.cursorline = true
+
+-- Behavior
+vim.opt.mouse = "a"
+vim.opt.clipboard = "unnamedplus"
+vim.opt.undofile = true
+vim.opt.updatetime = 250
+vim.opt.timeoutlen = 300
+
+-- Splits
+vim.opt.splitright = true
+vim.opt.splitbelow = true
 EOF
 
-# Create custom end script
-sudo tee /usr/local/bin/gamemode-end.sh > /dev/null << 'EOF'
-#!/bin/bash
-# Re-enable compositor effects
-if pgrep -x "Hyprland" > /dev/null; then
-    hyprctl keyword decoration:blur:enabled true
-    hyprctl keyword decoration:drop_shadow true
-fi
+# Create autocmds file
+cat > ~/.config/nvim/lua/config/autocmds.lua << 'EOF'
+-- MythOS Neovim Autocmds
 
-# Restore CPU governor
-echo powersave | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+-- Highlight on yank
+vim.api.nvim_create_autocmd("TextYankPost", {
+  callback = function()
+    vim.highlight.on_yank()
+  end,
+})
+
+-- Remove trailing whitespace on save
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*",
+  command = [[%s/\s\+$//e]],
+})
 EOF
 
-# Make scripts executable
-sudo chmod +x /usr/local/bin/gamemode-start.sh
-sudo chmod +x /usr/local/bin/gamemode-end.sh
-
-# Enable and start GameMode daemon
-sudo systemctl enable --now gamemoded
-
-# Add user to gamemode group
-sudo usermod -aG gamemode $USER
-
-echo "✅ GameMode configured with performance optimizations!"
-echo "💡 Use 'gamemoderun <game>' or enable in Steam launch options"
-echo "💡 Log out and back in for group changes to take effect"
+echo "✅ Neovim configured with LazyVim!"
+echo "💡 Run 'nvim' to complete plugin installation"
+echo "💡 Press 'Space' to see available commands"
+echo "💡 Use ':checkhealth' to verify LSP setup"
