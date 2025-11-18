@@ -1,40 +1,83 @@
 #!/bin/bash
-set -euo pipefail
-echo "🏛️ MythOS Bootstrap"
-echo "===================="
+set -e
 
-if [ "$EUID" -ne 0 ]; then
-    echo "❌ Run as root: sudo bash bootstrap/arch.sh"
-    exit 1
+# MythOS Bootstrap — Arch Base System Setup
+# This script assumes you're running on a fresh Arch install or post-archinstall
+
+echo "🜁 MythOS Bootstrap — Arch Base System"
+echo "======================================="
+
+# Update system
+echo "📦 Updating system packages..."
+sudo pacman -Syu --noconfirm
+
+# Install essential base packages
+echo "📦 Installing base packages..."
+sudo pacman -S --needed --noconfirm \
+    base-devel \
+    git \
+    wget \
+    curl \
+    vim \
+    neovim \
+    htop \
+    btop \
+    fastfetch \
+    unzip \
+    zip \
+    man-db \
+    man-pages \
+    rsync
+
+# Install yay (AUR helper) if not present
+if ! command -v yay &> /dev/null; then
+    echo "📦 Installing yay (AUR helper)..."
+    cd /tmp
+    git clone https://aur.archlinux.org/yay.git
+    cd yay
+    makepkg -si --noconfirm
+    cd ~
 fi
 
-echo "[1/5] Updating system..."
-pacman -Syu --noconfirm
-
-echo "[2/5] Installing dependencies..."
-pacman -S --noconfirm base-devel git python wget curl
-
-echo "[3/5] Enabling multilib..."
+# Enable multilib (for 32-bit support, needed for gaming)
+echo "📦 Enabling multilib repository..."
 if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-    echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
-    pacman -Sy
+    echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
+    sudo pacman -Sy
 fi
 
-echo "[4/5] Installing yay..."
-if ! command -v yay &>/dev/null && [ -n "${SUDO_USER:-}" ]; then
-    sudo -u "$SUDO_USER" bash << 'EOY'
-cd /tmp
-git clone https://aur.archlinux.org/yay-bin.git
-cd yay-bin
-makepkg -si --noconfirm
-EOY
+# Install common utilities
+echo "📦 Installing common utilities..."
+sudo pacman -S --needed --noconfirm \
+    bash-completion \
+    fd \
+    ripgrep \
+    bat \
+    eza \
+    zoxide \
+    fzf \
+    stow
+
+# Set up dotfiles directory structure
+echo "📁 Creating dotfiles structure..."
+mkdir -p ~/.config
+mkdir -p ~/repos
+mkdir -p ~/.local/bin
+
+# Basic shell improvements
+echo "🐚 Setting up shell improvements..."
+if ! grep -q "alias ls='eza'" ~/.bashrc 2>/dev/null; then
+    cat >> ~/.bashrc << 'EOF'
+
+# MythOS Shell Enhancements
+alias ls='eza --icons'
+alias ll='eza -la --icons'
+alias cat='bat'
+alias find='fd'
+alias grep='rg'
+eval "$(zoxide init bash)"
+EOF
 fi
 
-echo "[5/5] Optimizing pacman..."
-sed -i 's/#ParallelDownloads/ParallelDownloads/' /etc/pacman.conf
-sed -i 's/#Color/Color/' /etc/pacman.conf
-
-echo ""
-echo "✅ Bootstrap complete!"
-echo ""
-echo "Next: sudo python3 provisioner.py --all"
+echo "✅ Arch base system bootstrap complete!"
+echo "💡 Next: Run provisioner with --gaming, --dev, or --aesthetic flags"
