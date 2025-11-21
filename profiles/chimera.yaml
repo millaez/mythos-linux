@@ -1,0 +1,68 @@
+# F.O.R.G.E. Profile: Chimera
+# The complete three-natured beast — all pillars forged together
+#
+# "Where Chimeras are forged"
+
+name: "Chimera"
+description: "Complete F.O.R.G.E. setup with all three pillars"
+
+# Inherit base behaviors from traits
+traits:
+  - steamos
+
+# Run bootstrap phase
+bootstrap: true
+
+# Pillars to forge
+# The Chimera combines all three natures:
+#   🦁 Lion (Gaming) — Performance & Play
+#   🐍 Serpent (Developer) — Tools & Workflow
+#   🐐 Goat (Aesthetic) — Beauty & Polish
+
+pillars:
+  gaming:
+    - gpu-drivers
+    - steam
+    - mangohud
+    - proton-ge
+    - lutris
+    - gamemode
+  
+  developer:
+    - shell
+    - languages
+    - git
+    - neovim
+    - distrobox
+  
+  aesthetic:
+    - hyprland
+    - waybar
+    - themes
+
+# Additional packages (optional)
+# These are suggestions — swap as needed
+packages:
+  pacman:
+    - firefox           # Browser (alternative: brave, chromium)
+    - discord           # Communication (alternative: element)
+    - obs-studio        # Streaming/recording
+  
+  aur:
+    - spotify           # Music (alternative: cmus, ncspot)
+    - visual-studio-code-bin  # Editor (alternative: already have neovim)
+
+# Theme preferences
+# Default: Catppuccin Mocha
+# Alternatives: Nord, Dracula, Gruvbox
+theme:
+  style: "catppuccin-mocha"
+  font: "JetBrains Mono Nerd Font"
+  icons: "Papirus-Dark"
+  cursor: "Catppuccin-Mocha-Dark-Cursors"
+
+# System tweaks
+tweaks:
+  kernel: "linux"              # Or: linux-cachyos, linux-zen
+  compositor: "hyprland"       # Or: sway, i3
+  shell: "bash"                # Or: fish, zsh
