@@ -6,11 +6,7 @@
 name: "Chimera"
 description: "Complete F.O.R.G.E. setup with all three pillars"
 
-# Inherit base behaviors from traits
-traits:
-  - steamos
-
-# Run bootstrap phase
+# Run bootstrap phase first
 bootstrap: true
 
 # Pillars to forge
@@ -21,7 +17,7 @@ bootstrap: true
 
 pillars:
   gaming:
-    - gpu-drivers
+    - gpu-drivers   # MUST be first - installs GPU drivers
     - steam
     - mangohud
     - proton-ge
@@ -29,40 +25,20 @@ pillars:
     - gamemode
   
   developer:
-    - shell
-    - languages
-    - git
-    - neovim
-    - distrobox
+    - shell         # Shell enhancements (starship, zoxide, etc.)
+    - languages     # Python, Rust, Node, Go
+    - git           # Git with delta, lazygit
+    - neovim        # Editor with LSP
+    - distrobox     # Containerized dev environments
   
   aesthetic:
-    - hyprland
-    - waybar
-    - themes
-
-# Additional packages (optional)
-# These are suggestions — swap as needed
-packages:
-  pacman:
-    - firefox           # Browser (alternative: brave, chromium)
-    - discord           # Communication (alternative: element)
-    - obs-studio        # Streaming/recording
-  
-  aur:
-    - spotify           # Music (alternative: cmus, ncspot)
-    - visual-studio-code-bin  # Editor (alternative: already have neovim)
+    - hyprland      # Compositor + core Wayland
+    - waybar        # Status bar
+    - themes        # Catppuccin system-wide
 
 # Theme preferences
-# Default: Catppuccin Mocha
-# Alternatives: Nord, Dracula, Gruvbox
 theme:
   style: "catppuccin-mocha"
   font: "JetBrains Mono Nerd Font"
   icons: "Papirus-Dark"
-  cursor: "Catppuccin-Mocha-Dark-Cursors"
-
-# System tweaks
-tweaks:
-  kernel: "linux"              # Or: linux-cachyos, linux-zen
-  compositor: "hyprland"       # Or: sway, i3
-  shell: "bash"                # Or: fish, zsh
+  cursor: "catppuccin-mocha-dark-cursors"
