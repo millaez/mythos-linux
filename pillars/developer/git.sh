@@ -1,9 +1,19 @@
 #!/bin/bash
 set -e
 
-# MythOS Developer Pillar — Git Configuration
+# F.O.R.G.E. Developer Pillar — Git Configuration
+# Part of: forge-arch
 
 echo "🔧 Configuring Git with modern defaults..."
+
+# Determine target user
+if [ -n "$SUDO_USER" ]; then
+    TARGET_USER="$SUDO_USER"
+    TARGET_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+    TARGET_USER="$USER"
+    TARGET_HOME="$HOME"
+fi
 
 # Install Git and related tools
 sudo pacman -S --needed --noconfirm \
@@ -12,24 +22,17 @@ sudo pacman -S --needed --noconfirm \
     github-cli \
     lazygit
 
-# Check if Git is already configured
+# Configure Git as the target user
+sudo -u "$TARGET_USER" bash << 'GITCONFIG'
+# Check if Git user is already configured
 if git config --global user.name &> /dev/null; then
-    echo "⚠️  Git already configured. Skipping user setup."
-    SKIP_USER_CONFIG=true
+    echo "⚠️  Git user already configured, preserving existing settings"
 else
-    SKIP_USER_CONFIG=false
-fi
-
-# Interactive Git user configuration
-if [ "$SKIP_USER_CONFIG" = false ]; then
     echo ""
-    echo "📝 Git User Configuration"
-    echo "────────────────────────"
-    read -p "Enter your name: " GIT_NAME
-    read -p "Enter your email: " GIT_EMAIL
-    
-    git config --global user.name "$GIT_NAME"
-    git config --global user.email "$GIT_EMAIL"
+    echo "📝 Git user not configured."
+    echo "   Configure later with:"
+    echo "   git config --global user.name 'Your Name'"
+    echo "   git config --global user.email 'your@email.com'"
 fi
 
 # Set up Git aliases
@@ -57,14 +60,15 @@ git config --global merge.conflictstyle diff3
 git config --global diff.colorMoved default
 
 # Delta theme (Catppuccin)
-git config --global delta.syntax-theme "Catppuccin-mocha"
+git config --global delta.syntax-theme "Catppuccin Mocha"
 
 # Set up credential helper
 git config --global credential.helper store
+GITCONFIG
 
 # Create global gitignore
-cat > ~/.gitignore_global << 'EOF'
-# MythOS Global Gitignore
+sudo -u "$TARGET_USER" tee "$TARGET_HOME/.gitignore_global" > /dev/null << 'EOF'
+# F.O.R.G.E. Global Gitignore
 
 # Editor directories and files
 .vscode/
@@ -93,8 +97,14 @@ build/
 *.log
 EOF
 
-git config --global core.excludesfile ~/.gitignore_global
+sudo -u "$TARGET_USER" git config --global core.excludesfile "$TARGET_HOME/.gitignore_global"
 
+echo ""
 echo "✅ Git configured with modern defaults!"
-echo "💡 Use 'gh auth login' to authenticate with GitHub"
-echo "💡 Use 'lazygit' for a terminal UI"
+echo ""
+echo "💡 Authenticate with GitHub: gh auth login"
+echo "💡 Terminal UI for Git: lazygit"
+echo ""
+echo "💡 If not configured, set your identity:"
+echo "   git config --global user.name 'Your Name'"
+echo "   git config --global user.email 'your@email.com'"
