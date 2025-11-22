@@ -5,7 +5,7 @@ set -e
 
 echo "📦 Installing distrobox..."
 
-pacman -S --noconfirm --needed distrobox
+sudo pacman -S --noconfirm --needed distrobox podman
 
 # Create default containers
 if [ -n "$SUDO_USER" ]; then
